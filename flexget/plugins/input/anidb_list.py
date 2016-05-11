@@ -12,6 +12,14 @@ from flexget.utils.soup import get_soup
 
 log = logging.getLogger('anidb_list')
 USER_ID_RE = r'^\d{1,6}$'
+sublists = {
+    "all": 0,
+    "undefined": 1,
+    "towatch": 2,
+    "toget": 3,
+    "blacklist": 4,
+    "buddy": 11,
+}
 
 class AnidbList(object):
     """"Creates an entry for each movie or series in your AniDB wishlist."""
@@ -29,7 +37,11 @@ class AnidbList(object):
                 'default' : 'movies'},
             'strip_dates': {
                 'type': 'boolean',
-                'default' : False}
+                'default' : False},
+            'sublist': {
+                'type': 'string',
+                'enum': ['all', 'undefined', 'towatch', 'toget', 'blacklist', 'buddy'],
+                'default': 'all'}
         },
         'additionalProperties': False,
         'required': ['user_id'],
@@ -40,7 +52,10 @@ class AnidbList(object):
     def on_task_input(self, task, config):
         # Create entries by parsing AniDB wishlist page html using beautifulsoup
         log.verbose('Retrieving AniDB list: mywishlist')
-        url = 'http://anidb.net/perl-bin/animedb.pl?show=mywishlist&uid=%s' % config['user_id']
+        mode = sublists.get("all")
+        if config['sublist'] and config['sublist'] in sublists:
+            mode = sublists.get(config['sublist'])
+        url = 'http://anidb.net/perl-bin/animedb.pl?show=mywishlist&uid=%s&mode=%d' % (config['user_id'], mode)
         log.debug('Requesting: %s' % url)
 
         page = task.requests.get(url)
